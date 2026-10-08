@@ -7,3 +7,12 @@ __pycache__/
 !.env.example
 *.pem
 *.ppk
+# Terraform local files and state
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+terraform.tfvars
+*.auto.tfvars
+crash.log
+crash.*.log
