@@ -122,3 +122,8 @@ verified separately through the ALB before claiming that its live test passed.
 - Never commit Terraform state, saved plans, `.env` files, or AWS access keys.
 
 The application is accessible through the ALB DNS name over HTTP. Custom-domain HTTPS using Route 53 and ACM is documented as an optional extension and was not implemented because no domain was available.
+
+## Architecture
+
+See [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) for the full tier breakdown, request flow, networking topology, secrets management, and scaling notes.
+
