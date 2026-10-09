@@ -1,0 +1,58 @@
+﻿{
+    "NatGateways": [
+        {
+            "CreateTime": "2026-10-06T16:54:34+00:00",
+            "NatGatewayAddresses": [
+                {
+                    "AllocationId": "eipalloc-0fdeb985932c38ee1",
+                    "NetworkInterfaceId": "eni-04009cfd64105fdf0",
+                    "PrivateIp": "10.0.1.60",
+                    "PublicIp": "13.237.47.223",
+                    "AssociationId": "eipassoc-073960a4ac12c44e5",
+                    "IsPrimary": true,
+                    "Status": "succeeded"
+                }
+            ],
+            "NatGatewayId": "nat-08f03c5587ddf9fd6",
+            "State": "available",
+            "SubnetId": "subnet-0a7f1b9127d89815f",
+            "VpcId": "vpc-0a8dbf239a41dbd51",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "nat-a"
+                }
+            ],
+            "ConnectivityType": "public",
+            "AvailabilityMode": "zonal",
+            "AttachedAppliances": []
+        },
+        {
+            "CreateTime": "2026-10-06T16:56:39+00:00",
+            "NatGatewayAddresses": [
+                {
+                    "AllocationId": "eipalloc-03b5ab5c295fbae17",
+                    "NetworkInterfaceId": "eni-05338a40baf3ff361",
+                    "PrivateIp": "10.0.2.157",
+                    "PublicIp": "3.104.27.92",
+                    "AssociationId": "eipassoc-09454bff9dea330c0",
+                    "IsPrimary": true,
+                    "Status": "succeeded"
+                }
+            ],
+            "NatGatewayId": "nat-00dc945d24f80d488",
+            "State": "available",
+            "SubnetId": "subnet-006c896d9a08544b8",
+            "VpcId": "vpc-0a8dbf239a41dbd51",
+            "Tags": [
+                {
+                    "Key": "Name",
+                    "Value": "nat-b"
+                }
+            ],
+            "ConnectivityType": "public",
+            "AvailabilityMode": "zonal",
+            "AttachedAppliances": []
+        }
+    ]
+}

@@ -3,7 +3,7 @@ set -euo pipefail
 umask 022
 
 # Install software.
-dnf install -y python3 python3-pip git nginx
+dnf install -y python3 python3-pip git nginx nodejs22 nodejs22-npm
 command -v aws
 
 # Create a dedicated application user.
@@ -14,6 +14,13 @@ id three-tier-app >/dev/null 2>&1 ||
 # Download the application.
 git clone https://github.com/Dileesha001/aws-3tier-ha.git \
     /opt/three-tier-app
+
+# Build the frontend from the committed lock file.
+# Node is used during installation; Nginx serves the built static files.
+cd /opt/three-tier-app/frontend
+npm-22 ci --no-audit --no-fund
+npm-22 run build
+cd /opt/three-tier-app
 
 # Create the Python environment.
 python3 -m venv /opt/three-tier-app/.venv
@@ -87,7 +94,7 @@ NoNewPrivileges=true
 WantedBy=multi-user.target
 UNIT
 
-# Configure Nginx to forward port 80 to Gunicorn.
+# Configure Nginx to serve the frontend and proxy the API to Gunicorn.
 cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.original
 
 cat >/etc/nginx/nginx.conf <<'NGINX'
@@ -110,8 +117,34 @@ http {
         listen 80 default_server;
         server_name _;
         client_max_body_size 16k;
+        root /opt/three-tier-app/frontend/dist;
+
+        location /assets/ {
+            try_files $uri =404;
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+        }
 
         location / {
+            try_files $uri $uri/ /index.html;
+            add_header Cache-Control "no-cache";
+        }
+
+        location /api/ {
+            proxy_pass http://127.0.0.1:8000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location = /health {
+            proxy_pass http://127.0.0.1:8000;
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        location = /messages {
             proxy_pass http://127.0.0.1:8000;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;

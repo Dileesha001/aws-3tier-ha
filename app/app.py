@@ -1,11 +1,14 @@
 ﻿import os
 
+from pathlib import Path
+
 import psycopg
 from psycopg.rows import dict_row
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024
+FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 
 def connect_db():
@@ -23,6 +26,8 @@ def connect_db():
 
 @app.get("/")
 def home():
+    if (FRONTEND_DIST / "index.html").is_file():
+        return send_from_directory(FRONTEND_DIST, "index.html", max_age=0)
     return """
     <h1>AWS 3-Tier HA Project</h1>
     <p>Application is healthy.</p>
@@ -51,6 +56,7 @@ def health():
 
 
 @app.route("/messages", methods=["GET", "POST"])
+@app.route("/api/messages", methods=["GET", "POST"])
 def messages():
     if request.method == "POST":
         data = request.get_json(silent=True) if request.is_json else request.form
@@ -98,6 +104,11 @@ def messages():
     except (KeyError, ValueError, psycopg.Error):
         app.logger.error("Database operation failed")
         return jsonify(error="Database temporarily unavailable"), 503
+
+
+@app.get("/assets/<path:filename>")
+def frontend_asset(filename):
+    return send_from_directory(FRONTEND_DIST / "assets", filename, max_age=31536000)
 
 
 if __name__ == "__main__":
