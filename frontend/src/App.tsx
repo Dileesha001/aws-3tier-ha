@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowRight, ArrowUpRight, Check, Cloud, Database, Github, Globe, Layers3, LoaderCircle, MessageSquare, RefreshCw, Send, Server, ShieldCheck, X } from 'lucide-react';
+import { ArrowDown, ArrowRight, ArrowUpRight, Check, Cloud, Database, Github, Globe, Layers3, LoaderCircle, MessageSquare, RefreshCw, Search, Send, Server, ShieldCheck, X } from 'lucide-react';
 
 type Message = { id: number; name: string; message: string; created_at: string };
 type Availability = 'checking' | 'online' | 'offline';
@@ -34,11 +34,19 @@ export default function App() {
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [status, setStatus] = useState<Availability>('checking');
-  const [name, setName] = useState('');
-  const [message, setMessage] = useState('');
+  const [query, setQuery] = useState('');
+  const [sort, setSort] = useState('newest');
+  const [name, setName] = useState(() => { try { return JSON.parse(localStorage.getItem('cloudbook-draft') || '{}').name || ''; } catch { return ''; } });
+  const [message, setMessage] = useState(() => { try { return JSON.parse(localStorage.getItem('cloudbook-draft') || '{}').message || ''; } catch { return ''; } });
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [success, setSuccess] = useState(false);
+  const visibleMessages = messages.filter(item => `${item.name} ${item.message}`.toLowerCase().includes(query.trim().toLowerCase())).sort((a, b) => sort === 'oldest' ? a.id - b.id : b.id - a.id);
+
+  useEffect(() => {
+    try { localStorage.setItem('cloudbook-draft', JSON.stringify({ name, message })); } catch { /* Storage may be disabled. */ }
+  }, [name, message]);
+
   const nameInput = useRef<HTMLInputElement>(null);
   const listRequest = useRef(0);
 
@@ -115,6 +123,7 @@ export default function App() {
           </div>
         </section>
 
+        <div className="project-strip"><div><MessageSquare size={20} /><span><strong>{loading || loadError ? '?' : messages.length}</strong> recent hellos</span></div><div><Layers3 size={20} /><span><strong>3 tiers</strong> one connected journey</span></div><div><ShieldCheck size={20} /><span><strong>2 availability zones</strong> for the application tier</span></div></div>
         <section id="guestbook" className="guestbook-section">
           <div className="section-heading"><div><div className="eyebrow">THE GUESTBOOK</div><h2>Good things start with hello.</h2></div><div className={`api-status ${status}`} role="status"><span />{status === 'online' ? 'API available' : status === 'checking' ? 'Checking API' : 'API unavailable'}</div></div>
           <div className="guestbook-grid">
@@ -122,7 +131,7 @@ export default function App() {
               <div className="compose-icon"><MessageSquare size={21} /></div><h3>Make yourself at home.</h3><p>Your message becomes a small part of this project. What’s on your mind?</p>
               <form onSubmit={submit}>
                 <label htmlFor="name">Your name</label><input ref={nameInput} id="name" autoComplete="name" placeholder="How should we call you?" maxLength={100} required value={name} onChange={e => setName(e.target.value)} disabled={saving} />
-                <div className="label-row"><label htmlFor="message">Your message</label><span>{message.length}/500</span></div><textarea id="message" placeholder="A hello, an idea, a little encouragement…" maxLength={500} required rows={5} value={message} onChange={e => { setMessage(e.target.value); setSuccess(false); }} disabled={saving} />
+                <div className="label-row"><label htmlFor="message">Your message</label><span aria-live="polite">{message.length}/500</span></div><textarea id="message" placeholder="A hello, an idea, a little encouragement…" maxLength={500} required rows={5} value={message} onChange={e => { setMessage(e.target.value); setSuccess(false); }} disabled={saving} />
                 {formError && <p className="form-error" role="alert">{formError}</p>}
                 {success && <div className="success-message" role="status"><Check size={17} /> Your message is saved. Thanks for stopping by!<button type="button" aria-label="Dismiss success message" onClick={() => setSuccess(false)}><X size={14} /></button></div>}
                 <button className="button primary send-button" type="submit" disabled={saving}>{saving ? <LoaderCircle className="spin" size={17} /> : <Send size={17} />}{saving ? 'Saving your message…' : 'Send a little hello'}<ArrowRight size={17} /></button>
@@ -132,7 +141,8 @@ export default function App() {
             <div className="messages-panel" aria-busy={loading || refreshing}>
               <div className="messages-heading"><h3>Notes from visitors <span>{loading ? '—' : messages.length}</span></h3><button className="refresh-button" disabled={refreshing || saving} onClick={() => void loadMessages()} aria-label="Refresh messages"><RefreshCw size={15} className={refreshing ? 'spin' : ''} /><span>Refresh</span></button></div>
               <p className="messages-caption">A few words, left along the way. Showing the latest 50 messages.</p>
-              {loading ? <div className="message-state"><LoaderCircle className="spin" size={25} /><h4>Gathering the hellos…</h4><p>Fetching the latest messages.</p></div> : loadError ? <div className="message-state error-state" role="alert"><Cloud size={31} /><h4>We couldn’t load the guestbook.</h4><p>{loadError}</p><button className="button secondary" onClick={() => void loadMessages()}>Try again <RefreshCw size={15} /></button></div> : messages.length === 0 ? <div className="message-state"><MessageSquare size={29} /><h4>A fresh page, waiting for you.</h4><p>Be the first to leave a little hello.</p><button className="text-link" onClick={focusForm}>Write the first message <ArrowRight size={16} /></button></div> : <div className="message-list">{messages.map((item, index) => <article className="message-card" key={item.id}><div className="message-top"><span className={`avatar avatar-${index % 4}`}>{initials(item.name)}</span><div><h4>{item.name}</h4><time dateTime={new Date(item.created_at).toString() === 'Invalid Date' ? undefined : new Date(item.created_at).toISOString()}>{dateLabel(item.created_at)}</time></div><span className="message-number">#{String(item.id).padStart(3, '0')}</span></div><p>{item.message}</p></article>)}</div>}
+              <div className="message-tools"><div className="search-field"><Search size={17} /><input aria-label="Search messages" placeholder="Search names or messages?" value={query} onChange={event => setQuery(event.target.value)} />{query && <button aria-label="Clear search" onClick={() => setQuery('')}><X size={16} /></button>}</div><select aria-label="Sort messages" value={sort} onChange={event => setSort(event.target.value)}><option value="newest">Newest first</option><option value="oldest">Oldest first</option></select></div>
+              {loading ? <div className="message-state"><LoaderCircle className="spin" size={25} /><h4>Gathering the hellos…</h4><p>Fetching the latest messages.</p></div> : loadError ? <div className="message-state error-state" role="alert"><Cloud size={31} /><h4>We couldn’t load the guestbook.</h4><p>{loadError}</p><button className="button secondary" onClick={() => void loadMessages()}>Try again <RefreshCw size={15} /></button></div> : messages.length === 0 ? <div className="message-state"><MessageSquare size={29} /><h4>A fresh page, waiting for you.</h4><p>Be the first to leave a little hello.</p><button className="text-link" onClick={focusForm}>Write the first message <ArrowRight size={16} /></button></div> : visibleMessages.length === 0 ? <div className="message-state"><Search size={29} /><h4>No matching hellos.</h4><p>Try another name or a different word.</p><button className="text-link" onClick={() => setQuery('')}>Clear search <X size={16} /></button></div> : <div className="message-list">{visibleMessages.map((item, index) => <article className="message-card" key={item.id}><div className="message-top"><span className={`avatar avatar-${index % 4}`}>{initials(item.name)}</span><div><h4>{item.name}</h4><time dateTime={new Date(item.created_at).toString() === 'Invalid Date' ? undefined : new Date(item.created_at).toISOString()}>{dateLabel(item.created_at)}</time></div><span className="message-number">#{String(item.id).padStart(3, '0')}</span></div><p>{item.message}</p></article>)}</div>}
               <div className="persistence-note"><Database size={14} /><span>Messages are stored in PostgreSQL, beyond the life of any app instance.</span></div>
             </div>
           </div>

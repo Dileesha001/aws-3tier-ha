@@ -22,3 +22,7 @@ crash.*.log
 frontend/dist/
 frontend/test-results/
 frontend/playwright-report/
+
+# Local development message database
+*.sqlite3
+*.sqlite3-*

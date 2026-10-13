@@ -49,3 +49,25 @@ test('retains a failed submission and fits a mobile screen', async ({ page }) =>
   await expect(page.getByLabel('Your message', { exact: true })).toHaveValue('Keep this draft');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
 });
+
+test('searches and sorts messages and restores an unsent draft', async ({ page }) => {
+  await page.route('**/health', route => route.fulfill({ json: { status: 'ok' } }));
+  await page.route('**/api/messages', route => route.fulfill({ json: [
+    { id: 2, name: 'Maya', message: 'Cloud greetings', created_at: '2026-10-08T12:05:00Z' },
+    { id: 1, name: 'Alex', message: 'Hello world', created_at: '2026-10-08T12:00:00Z' },
+  ] }));
+  await page.goto('/');
+  await page.getByLabel('Search messages').fill('maya');
+  await expect(page.locator('article')).toHaveCount(1);
+  await expect(page.locator('article')).toContainText('Maya');
+  await page.getByRole('button', { name: 'Clear search' }).click();
+  await page.getByLabel('Sort messages').selectOption('oldest');
+  await expect(page.locator('article').first()).toContainText('Alex');
+  await page.getByLabel('Search messages').fill('missing');
+  await expect(page.getByText('No matching hellos.')).toBeVisible();
+  await page.getByLabel('Your name', { exact: true }).fill('Draft visitor');
+  await page.getByLabel('Your message', { exact: true }).fill('My unsent hello');
+  await page.reload();
+  await expect(page.getByLabel('Your name', { exact: true })).toHaveValue('Draft visitor');
+  await expect(page.getByLabel('Your message', { exact: true })).toHaveValue('My unsent hello');
+});

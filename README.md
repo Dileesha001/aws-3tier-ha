@@ -16,17 +16,19 @@ application process, not database availability. Messages are public.
 
 Requires Node.js 22.12+ or supported Node.js 24, and Python 3.
 
-In one terminal, run Flask using the instructions below. In a second terminal:
+After creating the Python environment and installing backend requirements below, start both the API and UI:
 
 ```powershell
 cd E:\aws-3tier-ha\frontend
 npm ci
-npm run dev
+npm.cmd run dev:full
 ```
 
 Open http://127.0.0.1:5173. Vite proxies `/api` and `/health` to Flask on port 8000.
-If no database is configured, the UI shows an honest unavailable state; it does
-not substitute sample records. Private RDS requires an authorized network path.
+For direct local startup without PostgreSQL settings, messages persist in
+`app/local-messages.sqlite3` (ignored by Git). Set `LOCAL_DB_PATH` to choose another
+local SQLite file. Gunicorn on AWS continues to require PostgreSQL settings; it
+does not automatically fall back to SQLite. Private RDS requires an authorized network path.
 
 ### Production build and local preview
 
@@ -127,3 +129,32 @@ The application is accessible through the ALB DNS name over HTTP. Custom-domain 
 
 See [docs/architecture/ARCHITECTURE.md](docs/architecture/ARCHITECTURE.md) for the full tier breakdown, request flow, networking topology, secrets management, and scaling notes.
 
+
+## Email notifications
+
+After a message is committed, the backend can send its name, text, ID, and time
+via Resend's HTTPS API. Both PostgreSQL and local SQLite support notifications.
+Set `RESEND_API_KEY` and `NOTIFICATION_EMAIL` in the backend environment;
+`NOTIFICATION_FROM` defaults to `Cloudbook <onboarding@resend.dev>`.
+Never put these values in frontend code or variables starting with `VITE_`.
+
+With the default Resend testing sender, the recipient must be the email address
+used for your Resend account. To send to other recipients, verify a sender domain
+in Resend and set `NOTIFICATION_FROM` to an address on that domain.
+See https://resend.com/docs/api-reference/emails/send-email.
+
+On Render, add the variables in the service's **Environment** settings and
+redeploy. HTTPS is used because free Render services block SMTP ports.
+For local development, set variables in the terminal before starting the app:
+
+```powershell
+$env:NOTIFICATION_EMAIL = "your-address@example.com"
+$env:RESEND_API_KEY = "your-api-key"
+cd E:\aws-3tier-ha\frontend
+npm.cmd run dev:full
+```
+
+`.env.example` documents the settings; `.env` files are not automatically loaded.
+Without configuration, notifications are disabled. Email failures log a generic
+warning and do not undo the saved message. Delivery is best effort with a five
+second request timeout; there is no automatic retry or delivery guarantee.
